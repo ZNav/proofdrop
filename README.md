@@ -1,43 +1,102 @@
-# ProofDrop
+ProofDrop
 
-**ProofDrop** is a decentralized platform for creating permanent, public records backed by NFTs.  
-Whether you want to preserve a truth, share a moment, or keep data safe from censorship, ProofDrop lets you do it with confidence.
+A simple immutable and public NFT minting smart contract for uploading proof data anonymously and immutably.
 
----
+Project Setup
 
-## What is ProofDrop?
+Prerequisites:
 
-At its core, ProofDrop lets you:
+    Node.js (v18+ recommended)
 
-- Upload files or documents anonymously and permanently (via Arweave).
-- Mint an NFT that proves your submission exists forever on-chain.
-- Browse all submissions transparently.
+    Yarn package manager
 
-This isn’t just another app. It’s a monument for truth and memory that can’t be erased.
+    MetaMask or another Ethereum-compatible wallet
 
----
+Installation
 
-## How It Works
+    Clone the repo:
+    git clone https://github.com/your-username/proofdrop.git
+    cd proofdrop
 
-1. Upload a file from your device.
-2. The file gets stored permanently on Arweave via Bundlr.
-3. A JSON metadata file is created with your submission details.
-4. You mint an NFT on Polygon Mumbai testnet that links to your metadata.
-5. Your submission is publicly viewable, immutable, and censorship-resistant.
+    Install dependencies:
+    yarn install
 
----
+    Create a .env file in the root directory with the following content:
+    PRIVATE_KEY=your_private_key_here
+    ALCHEMY_API_KEY=your_alchemy_api_key_here
 
-## Getting Started
+Replace your_private_key_here with your wallet private key (with or without the 0x prefix).
 
-### Prerequisites
+Hardhat Configuration
 
-- Node.js >=16
-- MetaMask or other web3 wallet
-- Some testnet MATIC (Polygon Mumbai)
+Your hardhat.config.js should include the following network setup, including Amoy network configuration:
 
-### Install Dependencies (Root & Frontend)
+require("@nomiclabs/hardhat-ethers");
+require("dotenv").config();
 
-```bash
-npm install       # installs Hardhat and dev dependencies
-cd frontend
-npm install       # installs React app dependencies
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+
+module.exports = {
+solidity: "0.8.21",
+networks: {
+localhost: {
+url: "http://127.0.0.1:8545",
+},
+amoy: {
+url: "https://rpc-amoy.polygon.technology/",
+accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+},
+},
+};
+
+Usage
+
+Compile the contracts:
+npx hardhat compile
+
+Run a local blockchain node:
+npx hardhat node
+
+Deploy the contract locally:
+npx hardhat run scripts/deploy.js --network localhost
+
+Deploy to Amoy network:
+npx hardhat run scripts/deploy.js --network amoy
+
+Testing mint function locally
+
+Create a script scripts/testMint.js with the following content:
+
+const hre = require("hardhat");
+
+async function main() {
+const [user] = await hre.ethers.getSigners();
+const contractAddress = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+
+const ProofDrop = await hre.ethers.getContractFactory("ProofDrop");
+const contract = await ProofDrop.attach(contractAddress);
+
+const tx = await contract.mint("https://arweave.net/test-uri", {
+value: hre.ethers.utils.parseEther("0.005"),
+});
+
+const receipt = await tx.wait();
+console.log("Minted! Tx hash:", receipt.transactionHash);
+}
+
+main().catch(console.error);
+
+Run the script:
+npx hardhat run scripts/testMint.js --network localhost
+
+Replace YOUR_DEPLOYED_CONTRACT_ADDRESS with the address output during deployment.
+
+Notes
+
+    Do not commit your .env file to GitHub.
+
+    Make sure your wallet has sufficient funds on the chosen network (Amoy or local).
+
+    Minting requires 0.005 ETH or equivalent on the network.
+
+If you want help with frontend integration, contract verification, or additional features, just ask!

@@ -1,19 +1,16 @@
 {
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "dotenv": "^17.0.1",
+    "ethers": "^6.15.0",
+    "hardhat": "^2.25.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.3.0"
+  },
   "name": "proofdrop",
   "version": "1.0.0",
-  "description": "Immutable NFT record platform with permanent data storage via Arweave.",
   "main": "index.js",
-  "scripts": {
-    "compile": "hardhat compile",
-    "deploy": "hardhat run scripts/deploy.js --network mumbai",
-    "test": "echo \"No tests yet\""
-  },
-  "author": "You",
-  "license": "MIT",
-  "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.1.1",
-    "@nomiclabs/hardhat-waffle": "^2.0.3",
-    "ethers": "^5.7.2",
-    "hardhat": "^2.15.0"
-  }
+  "repository": "https://github.com/ZNav/proofdrop.git",
+  "license": "MIT"
 }
