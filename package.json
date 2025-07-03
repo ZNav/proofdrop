@@ -1,0 +1,19 @@
+{
+  "name": "proofdrop",
+  "version": "1.0.0",
+  "description": "Immutable NFT record platform with permanent data storage via Arweave.",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network mumbai",
+    "test": "echo \"No tests yet\""
+  },
+  "author": "You",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.15.0"
+  }
+}
