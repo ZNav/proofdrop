@@ -1,102 +1,136 @@
-ProofDrop
+# proofdrop
 
-A simple immutable and public NFT minting smart contract for uploading proof data anonymously and immutably.
+> *Mint a tamper-proof, anonymous, on-chain receipt of any data you want
+> permanently witnessed.*
 
-Project Setup
+ProofDrop is a minimal ERC-721 contract that lets anyone pay a small fee to
+mint an NFT whose token URI points to immutable, decentrally-stored metadata
+(typically Arweave JSON). The mint transaction itself becomes the proof:
+public, timestamped by the chain, untamperable as long as the chain exists.
 
-Prerequisites:
+## Why
 
-    Node.js (v18+ recommended)
+- **Whistleblower receipts** — pin a document hash on-chain so its existence at
+  a specific timestamp can be verified later, even if the original is taken down.
+- **Research / IP priority** — establish "I had this idea on this date" without
+  trusting a registrar, lawyer, or notary.
+- **Censorship-resistant witness records** — testimony, evidence, journalism
+  artifacts that survive platform takedowns.
+- **Just decentralization** — no account, no KYC, no trust beyond the chain.
 
-    Yarn package manager
+If a centralized service can revoke your proof, it isn't proof. Mint and the
+record outlives any single actor.
 
-    MetaMask or another Ethereum-compatible wallet
+## How it works
 
-Installation
+1. **You upload your data** (or its hash) to immutable storage — Arweave,
+   IPFS-pinned, or another permanent store. You get back a URI.
+2. **You call `mint(tokenURI)`** with `0.005 ETH`. The contract issues an NFT
+   in your wallet whose `tokenURI` points at that data.
+3. **The transaction is the receipt.** Block height, timestamp, sender,
+   token URI — all immutable on-chain.
 
-    Clone the repo:
-    git clone https://github.com/your-username/proofdrop.git
-    cd proofdrop
+```solidity
+function mint(string memory tokenURI) external payable returns (uint256) {
+    require(msg.value >= 0.005 ether, "Minting costs 0.005 ETH");
+    tokenCount++;
+    _safeMint(msg.sender, tokenCount);
+    _setTokenURI(tokenCount, tokenURI);
+    return tokenCount;
+}
+```
 
-    Install dependencies:
-    yarn install
+## Stack
 
-    Create a .env file in the root directory with the following content:
-    PRIVATE_KEY=your_private_key_here
-    ALCHEMY_API_KEY=your_alchemy_api_key_here
+- **Contract**: Solidity `^0.8.0` · OpenZeppelin ERC721URIStorage + Ownable
+- **Tooling**: Hardhat
+- **Networks (configured)**: localhost · Polygon Amoy testnet
+- **Frontend**: vanilla JS (`frontend/`)
 
-Replace your_private_key_here with your wallet private key (with or without the 0x prefix).
+## Quick start
 
-Hardhat Configuration
+### Prerequisites
+- Node.js 18+
+- Yarn (or npm)
+- MetaMask or any Ethereum-compatible wallet
 
-Your hardhat.config.js should include the following network setup, including Amoy network configuration:
+### Setup
+```bash
+git clone https://github.com/ZNav/proofdrop.git
+cd proofdrop
+yarn install
+```
 
-require("@nomiclabs/hardhat-ethers");
-require("dotenv").config();
+Create a `.env` (gitignored — never commit):
+```env
+PRIVATE_KEY=your_wallet_private_key
+ALCHEMY_API_KEY=your_alchemy_key
+```
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-
-module.exports = {
-solidity: "0.8.21",
-networks: {
-localhost: {
-url: "http://127.0.0.1:8545",
-},
-amoy: {
-url: "https://rpc-amoy.polygon.technology/",
-accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
-},
-},
-};
-
-Usage
-
-Compile the contracts:
-npx hardhat compile
-
-Run a local blockchain node:
-npx hardhat node
-
-Deploy the contract locally:
+### Deploy locally
+```bash
+npx hardhat node                                 # in one terminal
 npx hardhat run scripts/deploy.js --network localhost
+```
 
-Deploy to Amoy network:
+### Deploy to Amoy testnet
+```bash
 npx hardhat run scripts/deploy.js --network amoy
+```
 
-Testing mint function locally
+Save the deployed address — that's your contract.
 
-Create a script scripts/testMint.js with the following content:
-
+### Mint a proof
+```js
+// scripts/testMint.js
 const hre = require("hardhat");
 
 async function main() {
-const [user] = await hre.ethers.getSigners();
-const contractAddress = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+  const [user] = await hre.ethers.getSigners();
+  const contract = await hre.ethers.getContractAt(
+    "ProofDrop",
+    "<YOUR_DEPLOYED_CONTRACT_ADDRESS>"
+  );
 
-const ProofDrop = await hre.ethers.getContractFactory("ProofDrop");
-const contract = await ProofDrop.attach(contractAddress);
-
-const tx = await contract.mint("https://arweave.net/test-uri", {
-value: hre.ethers.utils.parseEther("0.005"),
-});
-
-const receipt = await tx.wait();
-console.log("Minted! Tx hash:", receipt.transactionHash);
+  const tx = await contract.mint("https://arweave.net/<your-data-hash>", {
+    value: hre.ethers.utils.parseEther("0.005"),
+  });
+  const receipt = await tx.wait();
+  console.log("Minted. Tx hash:", receipt.transactionHash);
 }
-
 main().catch(console.error);
+```
 
-Run the script:
+```bash
 npx hardhat run scripts/testMint.js --network localhost
+```
 
-Replace YOUR_DEPLOYED_CONTRACT_ADDRESS with the address output during deployment.
+## Repository layout
 
-Notes
+```
+contracts/ProofDrop.sol     # the contract
+scripts/deploy.js           # deployer
+frontend/                   # vanilla JS minting UI
+hardhat.config.js
+test-env.js                 # network sanity check
+validate.js                 # post-deploy contract validation
+```
 
-    Do not commit your .env file to GitHub.
+## Notes & caveats
 
-    Make sure your wallet has sufficient funds on the chosen network (Amoy or local).
+- **Mint cost**: `0.005 ETH` (or chain-equivalent). Owner can `withdraw()` the
+  collected balance.
+- **Permanence depends on the data layer**, not just the chain. The on-chain
+  token URI is forever; whether the data behind that URI stays accessible is
+  on the storage provider. Arweave's "pay once, hosted forever" model is the
+  recommended target for the metadata.
+- **Anonymity** is only as good as your wallet's anonymity. Use a fresh
+  address for sensitive proofs and consider a privacy chain or mixer-aware
+  workflow.
+- **Gas costs vary by chain.** Amoy is testnet (~free); mainnet Polygon or
+  Ethereum will cost real money to deploy and mint.
+- **Never commit your `.env`.**
 
-    Minting requires 0.005 ETH or equivalent on the network.
+## License
 
-If you want help with frontend integration, contract verification, or additional features, just ask!
+MIT — see [`LICENSE`](LICENSE).
